@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Linux Olympiad Web{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="page-shell">
+        <aside class="sidebar">
+            <div class="brand-block">
+                <div class="brand-logo">L</div>
+                <div>
+                    <div class="brand-title">Linux Olympiad</div>
+                    <div class="brand-subtitle">Веб-комплекс по 5 темам</div>
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                {% if session.get('user_id') %}
+                    {% if session.get('role') == 'admin' %}
+                        <a href="{{ url_for('admin_panel') }}" class="nav-link">Панель преподавателя</a>
+                    {% else %}
+                        <a href="{{ url_for('dashboard') }}" class="nav-link">Личный кабинет</a>
+                        {% if session.get('role') == 'tester' %}
+                            <span class="nav-link muted" style="pointer-events:none;opacity:0.85">Режим тестировщика</span>
+                        {% endif %}
+                        {% for nav_topic in all_topics %}
+                            <a href="{{ url_for('topic_page', topic_id=nav_topic.id) }}" class="nav-link">{{ nav_topic.short_title }}</a>
+                        {% endfor %}
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="nav-link danger-link">Выход</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="nav-link">Вход</a>
+                    <a href="{{ url_for('register') }}" class="nav-link">Регистрация</a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-note">
+                <div class="note-title">Режим</div>
+                <div class="note-text">
+                    {% if session.get('role') == 'admin' %}
+                        Доступ к базе студентов, попыткам и баллам по всем темам.
+                    {% elif session.get('role') == 'tester' %}
+                        Неограниченные проходы тем для проверки сценариев и UI.
+                    {% else %}
+                        Тренажёр с игровыми заданиями, сохраняющий результаты в SQLite.
+                    {% endif %}
+                </div>
+            </div>
+        </aside>
+
+        <div class="content-area">
+            <header class="topbar">
+                <div>
+                    <div class="eyebrow">Олимпиадная платформа</div>
+                    <h1 class="page-title">{% block page_title %}Интерактивный комплекс по Linux{% endblock %}</h1>
+                </div>
+                <div class="user-chip-wrap">
+                    {% if session.get('user_id') %}
+                        <div class="user-chip">
+                            <span class="user-role">{% if session.get('role') == 'admin' %}Преподаватель{% elif session.get('role') == 'tester' %}Тестировщик{% else %}Студент{% endif %}</span>
+                            <strong>{{ session.get('user_name') }}</strong>
+                        </div>
+                    {% endif %}
+                </div>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack">
+                        {% for category, message in messages %}
+                            <div class="flash flash-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <main class="main-content">
+                {% block content %}{% endblock %}
+            </main>
+
+            <footer class="footer">
+                Linux Olympiad Web · {{ now_year }} · SQLite + Flask + role-based access
+            </footer>
+        </div>
+    </div>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.short_title }} · Linux Olympiad{% endblock %}
+{% block page_title %}{{ topic.short_title }}{% endblock %}
+{% block content %}
+<section class="topic-hero glass-card {{ topic.ui_theme }}">
+    <div>
+        <div class="card-badge">{{ topic.hero }}</div>
+        <h2>{{ topic.title }}</h2>
+        <p class="muted">{{ topic.description }}</p>
+        {% if is_tester %}
+            <p class="tester-banner">Режим тестировщика: попыток по теме нет — можно проходить снова и снова.</p>
+        {% endif %}
+    </div>
+    <div class="hero-side-stats">
+        <div class="stat-box compact">
+            <div class="stat-value">{{ topic.max_score }}</div>
+            <div class="stat-label">макс. баллов</div>
+        </div>
+        <div class="stat-box compact">
+            <div class="stat-value">{{ topic.time_limit_seconds // 60 }}:{{ '%02d' % (topic.time_limit_seconds % 60) }}</div>
+            <div class="stat-label">лимит времени</div>
+        </div>
+        <div class="stat-box compact">
+            <div class="stat-value">{{ completed_result.score if completed_result else '—' }}</div>
+            <div class="stat-label">{% if is_tester and completed_result %}последний{% else %}итоговый{% endif %} результат</div>
+        </div>
+    </div>
+</section>
+
+{% if is_locked %}
+<section class="glass-card history-card single-run-lock {{ topic.ui_theme }}">
+    <div class="section-head">
+        <h3>Тема уже завершена</h3>
+    </div>
+    <p class="muted">Попытка по этой теме уже зафиксирована в базе. Повторное прохождение и изменение результата отключены.</p>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата завершения</th>
+                    <th>Баллы</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ completed_result.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td>{{ completed_result.score }}/{{ completed_result.max_score }}</td>
+                    <td>Результат зафиксирован</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% else %}
+<section class="game-shell glass-card mission-pending {{ topic.ui_theme }}" id="game-mission-shell">
+    <div class="mission-briefing-overlay" id="mission-briefing">
+        <div class="mission-briefing-card glass-card">
+            <div class="card-badge">{{ topic.hero }}</div>
+            <h3>{{ topic.mission_title }}</h3>
+            <p class="muted briefing-lead">{{ topic.tagline }}</p>
+            <div class="briefing-body muted">
+                <p><strong>Задание:</strong> {{ topic.description }}</p>
+                <p><strong>Что сделать:</strong> выполни интерактивные шаги миссии до конца или до остановки таймера. Система сама проверит ответы и отправит баллы на сервер.</p>
+                <ul class="briefing-list">
+                    <li>Таймер начнётся только после нажатия «Начать миссию».</li>
+                    <li>Одна попытка на тему для студента; результат сохраняется автоматически.</li>
+                    {% if is_tester %}
+                        <li><strong>Тестировщик:</strong> ограничение на одну попытку не действует.</li>
+                    {% endif %}
+                </ul>
+                {% if topic.briefing_rules %}
+                <p class="muted briefing-subhead"><strong>Правила этого уровня:</strong></p>
+                <ul class="briefing-list briefing-topic-rules">
+                    {% for rule in topic.briefing_rules %}
+                    <li>{{ rule }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+            <button type="button" class="primary-btn briefing-start-btn" data-mission-start>Начать миссию</button>
+        </div>
+    </div>
+
+    <div class="game-toolbar">
+        <div>
+            <div class="game-kicker">{{ topic.mission_title }}</div>
+            <h3>{{ topic.tagline }}</h3>
+            <p class="muted">Нажми «Начать миссию» в окне выше: таймер и игра запустятся после подтверждения.</p>
+        </div>
+        <div class="score-panel expanded">
+            <div class="score-chip">Баллы: <span id="current-score">0</span>/{{ topic.max_score }}</div>
+            <div class="score-chip alt">Шаг: <span id="current-step">0</span></div>
+            <div class="score-chip warn">Время: <span id="timer-value">--:--</span></div>
+        </div>
+    </div>
+
+    <div class="game-meta-strip">
+        <div class="meta-tile">
+            <span class="meta-label">режим</span>
+            <strong>{{ topic.mission_title }}</strong>
+        </div>
+        <div class="meta-tile">
+            <span class="meta-label">тема</span>
+            <strong>{{ topic.short_title }}</strong>
+        </div>
+        <div class="meta-tile">
+            <span class="meta-label">лимит</span>
+            <strong>{{ topic.time_limit_seconds }} сек.</strong>
+        </div>
+    </div>
+
+    <div class="timer-shell">
+        <div class="timer-bar" id="timer-bar"></div>
+    </div>
+
+    <div id="topic-app" class="topic-app"></div>
+
+    <div class="result-box" id="result-box">
+        <div class="result-message" id="result-message">Подтверди старт миссии в окне выше. После начала таймер пойдёт, а результат можно будет зафиксировать.</div>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if not is_locked %}
+<script>
+    window.TOPIC_DATA = {{ topic_payload|safe }};
+    window.SUBMIT_URL = "{{ url_for('submit_topic', topic_id=topic.id) }}";
+    window.MUSIC_ENABLED = {{ music_enabled | tojson }};
+    window.IS_TESTER = {{ is_tester | tojson }};
+</script>
+<script type="module" src="{{ url_for('static', filename='js/topic_runner/main.js') }}"></script>
+{% endif %}
+{% endblock %}

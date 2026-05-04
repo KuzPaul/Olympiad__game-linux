@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Вход · Linux Olympiad{% endblock %}
+{% block page_title %}Авторизация{% endblock %}
+{% block content %}
+<section class="auth-layout">
+    <div class="auth-card glass-card">
+        <div class="card-badge">Старт</div>
+        <h2>Вход в систему</h2>
+        <p class="muted">Студенты входят под своими аккаунтами. После входа откроется кабинет с 5 игровыми блоками и фиксацией результата по каждой теме.</p>
+        <form method="post" class="form-grid">
+            <label>
+                <span>Логин</span>
+                <input type="text" name="login" placeholder="Например, cadet_ivanov" required>
+            </label>
+            <label>
+                <span>Пароль</span>
+                <input type="password" name="password" placeholder="Введите пароль" required>
+            </label>
+            <button class="primary-btn" type="submit">Войти</button>
+        </form>
+        <div class="auth-links">
+            Нет аккаунта? <a href="{{ url_for('register') }}">Создать студенческий профиль</a>
+        </div>
+    </div>
+
+    <div class="promo-card glass-card">
+        <div class="card-badge accent">Что внутри</div>
+        <h3>5 отдельных игровых тем</h3>
+        <ul class="clean-list">
+            <li>сортировка модулей по классам ПО</li>
+            <li>диспетчер процессов и быстрые решения по Linux</li>
+            <li>цифровые замки прав доступа и учётных записей</li>
+            <li>сборка сетевых команд под реальные кейсы</li>
+            <li>квест по find с поиском «сокровищ»</li>
+        </ul>
+        <p class="muted">Каждая тема открывается на отдельной странице, работает по таймеру и даёт один финальный результат без возможности перепройти.</p>
+    </div>
+</section>
+{% endblock %}

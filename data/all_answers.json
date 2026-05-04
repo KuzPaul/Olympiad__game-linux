@@ -1,0 +1,332 @@
+{
+  "1": {
+    "id": 1,
+    "short_title": "Классификация ПО",
+    "type": "classification",
+    "max_score": 12,
+    "answers": [
+      {
+        "item": "Ядро Linux",
+        "category": "Системное ПО"
+      },
+      {
+        "item": "Загрузчик GRUB",
+        "category": "Системное ПО"
+      },
+      {
+        "item": "Системный shell Bash",
+        "category": "Системное ПО"
+      },
+      {
+        "item": "Система инициализации systemd",
+        "category": "Системное ПО"
+      },
+      {
+        "item": "Компилятор GCC",
+        "category": "Системное ПО"
+      },
+      {
+        "item": "Текстовый редактор LibreOffice Writer",
+        "category": "Прикладное ПО"
+      },
+      {
+        "item": "Браузер Firefox",
+        "category": "Прикладное ПО"
+      },
+      {
+        "item": "Графический редактор GIMP",
+        "category": "Прикладное ПО"
+      },
+      {
+        "item": "Мессенджер Telegram Desktop",
+        "category": "Прикладное ПО"
+      },
+      {
+        "item": "Архиватор tar",
+        "category": "Сервисные утилиты"
+      },
+      {
+        "item": "Утилита df",
+        "category": "Сервисные утилиты"
+      },
+      {
+        "item": "Утилита find",
+        "category": "Сервисные утилиты"
+      }
+    ]
+  },
+  "2": {
+    "id": 2,
+    "short_title": "Задачи и процессы",
+    "type": "quiz",
+    "max_score": 12,
+    "answers": [
+      {
+        "index": 0,
+        "correct_option_index": 1,
+        "correct_option": "top"
+      },
+      {
+        "index": 1,
+        "correct_option_index": 1,
+        "correct_option": "zombie"
+      },
+      {
+        "index": 2,
+        "correct_option_index": 0,
+        "correct_option": "kill 4242"
+      },
+      {
+        "index": 3,
+        "correct_option_index": 2,
+        "correct_option": "PID"
+      },
+      {
+        "index": 4,
+        "correct_option_index": 0,
+        "correct_option": "Меняет приоритет процесса"
+      },
+      {
+        "index": 5,
+        "correct_option_index": 0,
+        "correct_option": "ps"
+      },
+      {
+        "index": 6,
+        "correct_option_index": 0,
+        "correct_option": "daemon"
+      },
+      {
+        "index": 7,
+        "correct_option_index": 0,
+        "correct_option": "pstree"
+      },
+      {
+        "index": 8,
+        "correct_option_index": 1,
+        "correct_option": "SIGTERM"
+      },
+      {
+        "index": 9,
+        "correct_option_index": 0,
+        "correct_option": "Фоновые и приостановленные задачи оболочки"
+      },
+      {
+        "index": 10,
+        "correct_option_index": 0,
+        "correct_option": "renice"
+      },
+      {
+        "index": 11,
+        "correct_option_index": 1,
+        "correct_option": "Поток выполнения внутри процесса"
+      }
+    ]
+  },
+  "3": {
+    "id": 3,
+    "short_title": "Учётные записи и права",
+    "type": "match",
+    "max_score": 10,
+    "answers": [
+      {
+        "left": "rwxr-xr--",
+        "right": "754"
+      },
+      {
+        "left": "rw-r-----",
+        "right": "640"
+      },
+      {
+        "left": "rwx------",
+        "right": "700"
+      },
+      {
+        "left": "chmod 755 script.sh",
+        "right": "Назначить права rwxr-xr-x"
+      },
+      {
+        "left": "chown cadet:group1 report.txt",
+        "right": "Изменить владельца и группу файла"
+      },
+      {
+        "left": "usermod -aG sudo cadet",
+        "right": "Добавить пользователя в дополнительную группу"
+      },
+      {
+        "left": "id cadet",
+        "right": "Показать UID, GID и группы пользователя"
+      },
+      {
+        "left": "passwd cadet",
+        "right": "Изменить пароль пользователя"
+      },
+      {
+        "left": "userdel -r cadet",
+        "right": "Удалить пользователя вместе с домашним каталогом"
+      },
+      {
+        "left": "chgrp operators logs.txt",
+        "right": "Изменить группу файла"
+      }
+    ]
+  },
+  "4": {
+    "id": 4,
+    "short_title": "Сетевые средства Linux",
+    "type": "builder",
+    "max_score": 8,
+    "answers": [
+      {
+        "task_index": 0,
+        "scenario": "Показать все IP-адреса сетевых интерфейсов на машине.",
+        "primary": [
+          "ip",
+          "addr",
+          "show"
+        ],
+        "accepted_variants": [
+          [
+            "ip",
+            "a"
+          ]
+        ]
+      },
+      {
+        "task_index": 1,
+        "scenario": "Проверить доступность узла 8.8.8.8 четырьмя echo-запросами.",
+        "primary": [
+          "ping",
+          "-c",
+          "4",
+          "8.8.8.8"
+        ]
+      },
+      {
+        "task_index": 2,
+        "scenario": "Показать таблицу маршрутизации системы.",
+        "primary": [
+          "ip",
+          "route",
+          "show"
+        ],
+        "accepted_variants": [
+          [
+            "ip",
+            "r"
+          ]
+        ]
+      },
+      {
+        "task_index": 3,
+        "scenario": "Посмотреть TCP и UDP-сокеты в режиме прослушивания с числовыми адресами.",
+        "primary": [
+          "ss",
+          "-tuln"
+        ]
+      },
+      {
+        "task_index": 4,
+        "scenario": "Получить только HTTP-заголовки от https://example.com.",
+        "primary": [
+          "curl",
+          "-I",
+          "https://example.com"
+        ]
+      },
+      {
+        "task_index": 5,
+        "scenario": "Поднять интерфейс eth0 после настройки.",
+        "primary": [
+          "ip",
+          "link",
+          "set",
+          "eth0",
+          "up"
+        ]
+      },
+      {
+        "task_index": 6,
+        "scenario": "Показать открытые сетевые соединения и процессы, которые их держат.",
+        "primary": [
+          "ss",
+          "-tunp"
+        ]
+      },
+      {
+        "task_index": 7,
+        "scenario": "Выполнить DNS-запрос A-записи для example.com с помощью dig.",
+        "primary": [
+          "dig",
+          "example.com",
+          "A"
+        ]
+      }
+    ]
+  },
+  "5": {
+    "id": 5,
+    "short_title": "Зомби и скрипт",
+    "type": "zombie_script",
+    "max_score": 8,
+    "answers": [
+      {
+        "task_index": 0,
+        "scenario": "Уровень 1. Shebang: запуск скрипта через `/bin/bash` (первая строка файла).",
+        "primary": "#!/bin/bash",
+        "accepted_variants": [
+          "#!/usr/bin/env bash"
+        ]
+      },
+      {
+        "task_index": 1,
+        "scenario": "Уровень 2. Присваивание: переменная `n`, значение `14` (без пробелов вокруг `=`).",
+        "primary": "n=14"
+      },
+      {
+        "task_index": 2,
+        "scenario": "Уровень 3. Арифметика bash: вывод произведения `7` и `8` через `$(( ... ))`.",
+        "primary": "echo $((7*8))",
+        "accepted_variants": [
+          "echo $(( 7 * 8 ))"
+        ]
+      },
+      {
+        "task_index": 3,
+        "scenario": "Уровень 4. Строка `hi` в переменной `msg`, вывод `echo` с подстановкой в двойных кавычках. Две строки или одна строка с `;`.",
+        "primary": "msg=hi\necho \"$msg\"",
+        "accepted_variants": [
+          "msg=hi; echo \"$msg\"",
+          "msg=\"hi\"\necho \"$msg\"",
+          "msg=\"hi\"; echo \"$msg\""
+        ]
+      },
+      {
+        "task_index": 4,
+        "scenario": "Уровень 5. Подстановка команды: в `cwd` записать результат `pwd` через `$( ... )`.",
+        "primary": "cwd=$(pwd)"
+      },
+      {
+        "task_index": 5,
+        "scenario": "Уровень 6. Цикл `for`: вывести `10`, `20`, `30` (каждое на своей строке) через `echo`.",
+        "primary": "for x in 10 20 30; do echo $x; done",
+        "accepted_variants": [
+          "for x in 10 20 30; do echo \"$x\"; done"
+        ]
+      },
+      {
+        "task_index": 6,
+        "scenario": "Уровень 7. Арифметика: в `p` записать произведение `5` и `9` через `$(( ... ))`.",
+        "primary": "p=$((5*9))",
+        "accepted_variants": [
+          "p=$(( 5 * 9 ))"
+        ]
+      },
+      {
+        "task_index": 7,
+        "scenario": "Уровень 8 (финал). Завершение процесса с кодом выхода `0`.",
+        "primary": "exit 0"
+      }
+    ]
+  }
+}

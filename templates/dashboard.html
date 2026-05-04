@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Кабинет студента · Linux Olympiad{% endblock %}
+{% block page_title %}{% if user_role == 'tester' %}Кабинет тестировщика{% else %}Личный кабинет студента{% endif %}{% endblock %}
+{% block content %}
+<section class="hero-grid">
+    <div class="glass-card hero-card">
+        <div class="card-badge">Профиль</div>
+        <h2>Олимпиада по Linux в веб-формате</h2>
+        <p class="muted">Каждая тема — это отдельная игровая миссия с таймером, эффектами и автоматической проверкой.{% if user_role != 'tester' %} После завершения результат сразу сохраняется в базу и становится виден преподавателю.{% endif %}</p>
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-value">{% if user_role == 'tester' %}∞{% else %}{{ completed_topics }}/5{% endif %}</div>
+                <div class="stat-label">{% if user_role == 'tester' %}лимит попыток{% else %}тем завершено{% endif %}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ total_best }}/{{ total_max }}</div>
+                <div class="stat-label">сумма баллов</div>
+            </div>
+        </div>
+    </div>
+    <div class="glass-card info-card">
+        <div class="card-badge accent">Как проходит тема</div>
+        <ol class="steps-list">
+            <li>Открываешь нужную игровую миссию.</li>
+            <li>Проходишь задания до конца, пока идёт таймер.</li>
+            <li>Система сама проверяет и фиксирует результат.</li>
+            {% if user_role == 'tester' %}
+                <li>Для тестировщика темы можно проходить многократно.</li>
+            {% else %}
+                <li>Повторно пройти уже нельзя.</li>
+            {% endif %}
+        </ol>
+    </div>
+</section>
+
+<section class="topic-grid">
+    {% for topic in all_topics %}
+        {% set entry = progress[topic.id] %}
+        <article class="topic-card glass-card">
+            <div class="topic-topline">
+                <span class="topic-index">Тема {{ topic.id }}</span>
+                {% if user_role == 'tester' %}
+                    <span class="topic-status muted-pill">Тест</span>
+                {% elif entry.completed %}
+                    <span class="topic-status success-pill">Завершено</span>
+                {% else %}
+                    <span class="topic-status muted-pill">Ещё не начато</span>
+                {% endif %}
+            </div>
+            <h3>{{ topic.short_title }}</h3>
+            <p class="muted">{{ topic.tagline }}</p>
+            <div class="progress-line">
+                <div class="progress-fill" style="width: {{ ((entry.best_score or 0) / entry.max_score * 100) if entry.max_score else 0 }}%"></div>
+            </div>
+            <div class="topic-meta">
+                <span>Итог: <strong>{{ entry.best_score if entry.best_score is not none else '—' }}/{{ entry.max_score }}</strong></span>
+                <span>Попыток: <strong>{{ entry.attempts }}</strong></span>
+            </div>
+            <a class="primary-btn small-btn" href="{{ url_for('topic_page', topic_id=topic.id) }}">{% if user_role == 'tester' %}Открыть / повторить{% elif entry.completed %}Посмотреть результат{% else %}Открыть тему{% endif %}</a>
+        </article>
+    {% endfor %}
+</section>
+
+<section class="glass-card history-card">
+    <div class="section-head">
+        <h3>Зафиксированные результаты</h3>
+    </div>
+    {% if recent_results %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Тема</th>
+                        <th>Баллы</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in recent_results %}
+                        <tr>
+                            <td>{{ item.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>{% for t in all_topics %}{% if t.id == item.topic_id %}{{ t.short_title }}{% endif %}{% endfor %}</td>
+                            <td>{{ item.score }}/{{ item.max_score }}</td>
+                            <td>Зафиксировано</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="muted">Пока нет зафиксированных результатов.</p>
+    {% endif %}
+</section>
+{% endblock %}

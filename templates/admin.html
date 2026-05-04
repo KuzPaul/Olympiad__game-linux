@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Админ-панель · Linux Olympiad{% endblock %}
+{% block page_title %}Панель преподавателя{% endblock %}
+{% block content %}
+<section class="stats-row admin-stats">
+    <div class="stat-box"><div class="stat-value">{{ total_students }}</div><div class="stat-label">студентов</div></div>
+    <div class="stat-box"><div class="stat-value">{{ total_testers }}</div><div class="stat-label">тестировщиков</div></div>
+    <div class="stat-box"><div class="stat-value">{{ total_attempts }}</div><div class="stat-label">всего попыток</div></div>
+    <div class="stat-box"><div class="stat-value">{{ avg_percent }}%</div><div class="stat-label">средний % (только студенты)</div></div>
+</section>
+
+<section class="glass-card bottom-gap" style="margin-bottom:18px; padding: 24px; border-radius: 15px">
+    <div class="section-head"><h3>Фоновая музыка в миссиях</h3></div>
+    <p class="muted">Включена синтезированная «бесячая» мелодия в браузере (без внешних файлов). Отключите для занятий в аудитории.</p>
+    <form method="post" action="{{ url_for('toggle_music') }}" class="admin-music-form">
+        <label><span>Музыка для всех</span>
+            <select name="music_enabled" class="like-input">
+                <option value="1" {% if music_enabled %}selected{% endif %}>Включена</option>
+                <option value="0" {% if not music_enabled %}selected{% endif %}>Выключена</option>
+            </select>
+        </label>
+        <button type="submit" class="secondary-btn small-btn">Сохранить</button>
+    </form>
+</section>
+
+<section class="admin-layout">
+    <div class="glass-card" style="padding: 24px; border-radius: 15px">
+        <div class="section-head"><h3>Сводная таблица</h3></div>
+        <div class="table-wrap wide-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Участник</th>
+                        <th>Роль</th>
+                        <th>Группа</th>
+                        {% for topic in all_topics %}
+                            <th>Т{{ topic.id }}</th>
+                        {% endfor %}
+                        <th>Сумма</th>
+                        <th>Попытки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in scoreboard %}
+                        <tr>
+                            <td>{{ row.user.full_name }}</td>
+                            <td>{% if row.user.role == 'tester' %}<span class="role-badge tester">тест</span>{% else %}<span class="role-badge">студент</span>{% endif %}</td>
+                            <td>{{ row.user.group_number }}</td>
+                            {% for topic in all_topics %}
+                                {% set entry = row.progress[topic.id] %}
+                                <td>{{ entry.best_score if entry.best_score is not none else '—' }}/{{ entry.max_score }}</td>
+                            {% endfor %}
+                            <td><strong>{{ row.total_best }}/{{ row.total_max }}</strong></td>
+                            <td>{{ row.attempts }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="glass-card" style="padding: 24px; border-radius: 15px">
+        <div class="section-head"><h3>Добавить студента или тестировщика</h3></div>
+        <form method="post" action="{{ url_for('create_student') }}" class="form-grid two-cols">
+            <label><span>Фамилия</span><input type="text" name="surname" required></label>
+            <label><span>Имя</span><input type="text" name="name" required></label>
+            <label><span>Отчество</span><input type="text" name="patronymic"></label>
+            <label><span>Группа</span><input type="text" name="group_number" required></label>
+            <label><span>Логин</span><input type="text" name="login" required></label>
+            <label><span>Пароль</span><input type="text" name="password" required></label>
+            <label class="full-width"><span>Роль</span>
+                <select name="role" class="like-input">
+                    <option value="student" selected>Студент (одна попытка на тему)</option>
+                    <option value="tester">Тестировщик (без лимита попыток)</option>
+                </select>
+            </label>
+            <div class="full-width"><button type="submit" class="primary-btn">Добавить</button></div>
+        </form>
+    </div>
+</section>
+
+<section class="admin-layout bottom-gap">
+    <div class="glass-card" style="padding: 24px; border-radius: 15px">
+        <div class="section-head"><h3>Студенты</h3></div>
+        <div class="stacked-cards">
+            {% for user in users %}
+                <div class="mini-card">
+                    <div>
+                        <strong>{{ user.full_name }}</strong>
+                        {% if user.role == 'tester' %}<span class="role-badge tester">тестировщик</span>{% endif %}
+                        <div class="muted">Группа: {{ user.group_number }} · Логин: {{ user.login }}</div>
+                    </div>
+                    <div class="mini-card-actions">
+                        <form method="post" action="{{ url_for('reset_password', user_id=user.id) }}" class="inline-form">
+                            <input type="text" name="new_password" placeholder="Новый пароль" required>
+                            <button type="submit" class="secondary-btn small-btn">Сменить пароль</button>
+                        </form>
+                        <form method="post" action="{{ url_for('delete_student', user_id=user.id) }}" onsubmit="return confirm('Удалить студента и все результаты?');">
+                            <button type="submit" class="danger-btn small-btn">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <p class="muted">Студентов пока нет.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="glass-card" style="padding: 24px; border-radius: 15px">
+        <div class="section-head"><h3>Последние результаты</h3></div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Когда</th>
+                        <th>Участник</th>
+                        <th>Роль</th>
+                        <th>Тема</th>
+                        <th>Баллы</th>
+                        <th>Попытка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in results %}
+                        <tr>
+                            <td>{{ item.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                            <td>{{ item.user.full_name }}</td>
+                            <td>{% if item.user.role == 'tester' %}тест{% else %}студент{% endif %}</td>
+                            <td>{{ topic_titles[item.topic_id] }}</td>
+                            <td>{{ item.score }}/{{ item.max_score }}</td>
+                            <td>{{ item.attempt }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6">Пока нет результатов.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}

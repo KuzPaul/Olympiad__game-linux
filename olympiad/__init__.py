@@ -39,16 +39,23 @@ def create_app():
             db.session.commit()
         admin = User.query.filter_by(login="admin").first()
         if not admin:
-            admin = User(
-                surname="Преподаватель",
-                name="Админ",
-                patronymic="",
-                group_number="TEACHER",
-                login="admin",
-                password_hash=generate_password_hash("admin123"),
-                role="admin",
-            )
-            db.session.add(admin)
-            db.session.commit()
+            initial_password = os.environ.get("ADMIN_INITIAL_PASSWORD", "").strip()
+            if initial_password:
+                admin = User(
+                    surname="Преподаватель",
+                    name="Админ",
+                    patronymic="",
+                    group_number="TEACHER",
+                    login="admin",
+                    password_hash=generate_password_hash(initial_password),
+                    role="admin",
+                )
+                db.session.add(admin)
+                db.session.commit()
+            else:
+                app.logger.warning(
+                    "Пользователь admin не создан: задайте ADMIN_INITIAL_PASSWORD в файле .env "
+                    "(скопируйте .env.example → .env). Перезапустите приложение после сохранения."
+                )
 
     return app

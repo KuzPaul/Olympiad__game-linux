@@ -38,7 +38,19 @@ def build_payload():
                 )
         elif t == "match":
             entry["answers"] = [{"left": p["left"], "right": p["right"]} for p in topic["pairs"]]
-        elif t in ("builder", "zombie_script"):
+        elif t == "zombie_script":
+            entry["full_script_primary"] = topic.get("full_script", "")
+            entry["answers"] = []
+            for i, task in enumerate(topic["tasks"]):
+                row = {
+                    "task_index": i,
+                    "scenario": task["scenario"],
+                    "primary": task["answer"],
+                }
+                if task.get("accepted"):
+                    row["accepted_variants"] = task["accepted"]
+                entry["answers"].append(row)
+        elif t == "builder":
             entry["answers"] = []
             for i, task in enumerate(topic["tasks"]):
                 row = {

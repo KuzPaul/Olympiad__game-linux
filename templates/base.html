@@ -4,13 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Linux Olympiad Web{% endblock %}</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/brand/favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/brand/favicon.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <div class="site-emblem-bg" aria-hidden="true">
+        <img src="{{ url_for('static', filename='img/brand/emblem-mission.png') }}" alt="" class="site-emblem-bg__img">
+    </div>
     <div class="page-shell">
         <aside class="sidebar">
             <div class="brand-block">
-                <div class="brand-logo">L</div>
+                <img
+                    src="{{ url_for('static', filename='img/brand/emblem-mission.png') }}"
+                    alt=""
+                    class="brand-logo brand-logo-img"
+                    width="56"
+                    height="56"
+                >
                 <div>
                     <div class="brand-title">Linux Olympiad</div>
                     <div class="brand-subtitle">Веб-комплекс по 5 темам</div>
@@ -53,6 +64,13 @@
 
         <div class="content-area">
             <header class="topbar">
+                <img
+                    src="{{ url_for('static', filename='img/brand/emblem-mission.png') }}"
+                    alt=""
+                    class="topbar-emblem"
+                    width="48"
+                    height="48"
+                >
                 <div>
                     <div class="eyebrow">Олимпиадная платформа</div>
                     <h1 class="page-title">{% block page_title %}Интерактивный комплекс по Linux{% endblock %}</h1>

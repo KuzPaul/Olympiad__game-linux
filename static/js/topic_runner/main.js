@@ -33,6 +33,7 @@ const state = {
   elapsedSeconds: 0,
   combo: 0,
   bestCombo: 0,
+  awaitingDismiss: false,
   totalSteps:
     topic.items?.length ||
     topic.questions?.length ||
@@ -78,7 +79,11 @@ function updateTimer() {
   timerBarEl.classList.toggle('warning', ratio <= 0.35 && ratio > 0.15);
   timerBarEl.classList.toggle('danger', ratio <= 0.15);
   document.body.classList.toggle('time-danger', ratio <= 0.15);
-  if (!state.completed && remaining <= 0) {
+  if (!state.completed && !state.awaitingDismiss && remaining <= 0) {
+    if (topicTimeoutHandler) {
+      topicTimeoutHandler();
+      return;
+    }
     finish({ timeout: true, elapsedSeconds: topic.time_limit_seconds, mode: topic.type, auto: true });
   }
 }
@@ -117,9 +122,17 @@ async function saveResult() {
       `Миссия закрыта. Результат: <strong>${state.score}/${topic.max_score}</strong>. ${tail}`,
       'success'
     );
-    window.setTimeout(() => window.location.reload(), 1100);
+    const reloadDelay = topic.type === 'zombie_script' ? 500 : 1100;
+    window.setTimeout(() => window.location.reload(), reloadDelay);
   } catch (error) {
     state.saving = false;
+    state.completed = false;
+    state.awaitingDismiss = true;
+    const dismissBtn = document.getElementById('zombie-dismiss-btn');
+    if (dismissBtn) {
+      dismissBtn.disabled = false;
+      dismissBtn.textContent = 'Завершить';
+    }
     setMessage(error.message || 'Не удалось сохранить результат.', 'error');
   }
 }
@@ -140,6 +153,11 @@ function finish(details) {
     pulseFeedback('bad', { intense: true });
     spawnBurst(app, 'bad', { intense: true });
     setMessage(`Время вышло. Миссия оборвана. Фиксируем результат: <strong>${state.score}/${topic.max_score}</strong>.`, 'error');
+  } else if (topic.type === 'zombie_script') {
+    setMessage(
+      `Фиксируем результат: <strong>${state.score}/${topic.max_score}</strong>. Отправка на сервер…`,
+      'info'
+    );
   } else {
     pulseFeedback('ok', { strong: true });
     spawnBurst(app, 'ok', { strong: true });
@@ -177,6 +195,8 @@ function createHud(extra = '') {
 
 const burst = (mode, opts) => spawnBurst(app, mode, opts);
 
+let topicTimeoutHandler = null;
+
 const ctx = {
   topic,
   app,
@@ -194,6 +214,17 @@ const ctx = {
   shuffle,
   createAmbientLayer,
   createHud,
+  setTopicTimeoutHandler(fn) {
+    topicTimeoutHandler = typeof fn === 'function' ? fn : null;
+  },
+  lockForVerdict() {
+    state.awaitingDismiss = true;
+    stopTimer();
+    stopMissionMusic();
+  },
+  submitMissionEnd(details) {
+    finish(details);
+  },
 };
 
 function boot() {
@@ -206,6 +237,8 @@ function boot() {
   state.elapsedSeconds = 0;
   state.combo = 0;
   state.bestCombo = 0;
+  state.awaitingDismiss = false;
+  topicTimeoutHandler = null;
   updateMeta();
   setMessage(
     'Это уже не просто карточки — это игровой модуль. Проходи быстро и точно: результат фиксируется автоматически.',

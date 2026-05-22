@@ -3,6 +3,15 @@
 {% block page_title %}{{ topic.short_title }}{% endblock %}
 {% block content %}
 <section class="topic-hero glass-card {{ topic.ui_theme }}">
+    {% if completed_result and completed_result.score >= topic.max_score and topic.type != 'classification' %}
+    <img
+        src="{{ url_for('static', filename='img/brand/emblem-trophy.png') }}"
+        alt=""
+        class="topic-hero-trophy"
+        width="96"
+        height="96"
+    >
+    {% endif %}
     <div>
         <div class="card-badge">{{ topic.hero }}</div>
         <h2>{{ topic.title }}</h2>
@@ -28,9 +37,18 @@
 </section>
 
 {% if is_locked %}
-<section class="glass-card history-card single-run-lock {{ topic.ui_theme }}">
+<section class="glass-card history-card single-run-lock {{ topic.ui_theme }}{% if completed_result and completed_result.score >= topic.max_score and topic.type != 'classification' %} topic-result-perfect{% endif %}">
+    {% if completed_result and completed_result.score >= topic.max_score and topic.type != 'classification' %}
+    <img
+        src="{{ url_for('static', filename='img/brand/emblem-trophy.png') }}"
+        alt=""
+        class="topic-result-trophy"
+        width="80"
+        height="80"
+    >
+    {% endif %}
     <div class="section-head">
-        <h3>Тема уже завершена</h3>
+        <h3>{% if completed_result and completed_result.score >= topic.max_score and topic.type != 'classification' %}Модуль пройден на 100%{% else %}Тема уже завершена{% endif %}</h3>
     </div>
     <p class="muted">Попытка по этой теме уже зафиксирована в базе. Повторное прохождение и изменение результата отключены.</p>
     <div class="table-wrap">
@@ -130,6 +148,9 @@
     window.SUBMIT_URL = "{{ url_for('submit_topic', topic_id=topic.id) }}";
     window.MUSIC_ENABLED = {{ music_enabled | tojson }};
     window.IS_TESTER = {{ is_tester | tojson }};
+    window.BRAND_IMAGES = {
+        trophy: {{ url_for('static', filename='img/brand/emblem-trophy.png') | tojson }}
+    };
 </script>
 <script type="module" src="{{ url_for('static', filename='js/topic_runner/main.js') }}"></script>
 {% endif %}

@@ -36,7 +36,16 @@
 <section class="topic-grid">
     {% for topic in all_topics %}
         {% set entry = progress[topic.id] %}
-        <article class="topic-card glass-card">
+        <article class="topic-card glass-card{% if entry.best_score is not none and entry.best_score >= entry.max_score and topic.type != 'classification' %} topic-card--perfect{% endif %}">
+            {% if entry.best_score is not none and entry.best_score >= entry.max_score and topic.type != 'classification' %}
+            <img
+                src="{{ url_for('static', filename='img/brand/emblem-trophy.png') }}"
+                alt=""
+                class="topic-card-trophy"
+                width="64"
+                height="64"
+            >
+            {% endif %}
             <div class="topic-topline">
                 <span class="topic-index">Тема {{ topic.id }}</span>
                 {% if user_role == 'tester' %}

@@ -36,24 +36,80 @@ const ZOMBIE_SCENE_SVG = `
   </div>
 `;
 
-function spawnZombieEpicExplosion(stage) {
+function spawnZombieEpicExplosion(stage, shardCount = 52) {
   const prev = stage.querySelector('.zombie-boom-fx');
   if (prev) prev.remove();
   const fx = document.createElement('div');
   fx.className = 'zombie-boom-fx';
   fx.setAttribute('aria-hidden', 'true');
-  const n = 52;
+  const n = shardCount;
   for (let i = 0; i < n; i += 1) {
     const s = document.createElement('span');
     const rot = (360 / n) * i + Math.random() * 14 - 7;
     s.style.setProperty('--rot', `${rot}deg`);
-    s.style.setProperty('--dist', `${88 + Math.floor(Math.random() * 110)}px`);
-    s.style.setProperty('--delay', `${(Math.random() * 0.14).toFixed(3)}s`);
-    s.style.setProperty('--hue', `${100 + Math.floor(Math.random() * 80)}`);
+    s.style.setProperty('--dist', `${88 + Math.floor(Math.random() * 140)}px`);
+    s.style.setProperty('--delay', `${(Math.random() * 0.22).toFixed(3)}s`);
+    s.style.setProperty('--hue', `${90 + Math.floor(Math.random() * 100)}`);
     fx.appendChild(s);
   }
   stage.appendChild(fx);
-  window.setTimeout(() => fx.remove(), 1200);
+  window.setTimeout(() => fx.remove(), 1600);
+}
+
+function spawnZombieShockwaves(stage) {
+  stage.querySelectorAll('.zombie-shockwave').forEach((el) => el.remove());
+  for (let i = 0; i < 3; i += 1) {
+    const ring = document.createElement('span');
+    ring.className = 'zombie-shockwave';
+    ring.style.setProperty('--sw-delay', `${i * 0.18}s`);
+    stage.appendChild(ring);
+  }
+  window.setTimeout(() => stage.querySelectorAll('.zombie-shockwave').forEach((el) => el.remove()), 1400);
+}
+
+function spawnZombieVictoryCinematic(stage, shell) {
+  if (!stage) return;
+  stage.classList.add('zombie-victory-cinematic', 'zombie-epic-detonate');
+  shell?.classList.add('zombie-mission-victory');
+  document.body.classList.add('zombie-arena-victory');
+  window.setTimeout(() => stage.classList.remove('zombie-epic-detonate'), 900);
+  spawnZombieShockwaves(stage);
+  spawnZombieEpicExplosion(stage, 88);
+  const sparks = document.createElement('div');
+  sparks.className = 'zombie-victory-sparks';
+  sparks.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 24; i += 1) {
+    const p = document.createElement('span');
+    p.style.setProperty('--sx', `${8 + Math.random() * 84}%`);
+    p.style.setProperty('--sy', `${12 + Math.random() * 76}%`);
+    p.style.setProperty('--sdelay', `${Math.random() * 0.5}s`);
+    sparks.appendChild(p);
+  }
+  stage.appendChild(sparks);
+  window.setTimeout(() => sparks.remove(), 2200);
+}
+
+function spawnZombieDefeatCinematic(stage, shell) {
+  if (!stage) return;
+  stage.classList.add('zombie-defeat-cinematic', 'zombie-feast');
+  shell?.classList.add('zombie-mission-defeat');
+  document.body.classList.add('zombie-arena-defeat');
+  const bite = document.createElement('div');
+  bite.className = 'zombie-bite-overlay';
+  bite.setAttribute('aria-hidden', 'true');
+  bite.innerHTML = '<span class="zombie-bite-flash"></span><span class="zombie-bite-teeth"></span>';
+  stage.appendChild(bite);
+  window.setTimeout(() => bite.remove(), 2400);
+  const swarm = document.createElement('div');
+  swarm.className = 'zombie-swarm-fx';
+  swarm.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 14; i += 1) {
+    const z = document.createElement('span');
+    z.style.setProperty('--zi', String(i));
+    swarm.appendChild(z);
+  }
+  stage.appendChild(swarm);
+  window.setTimeout(() => swarm.remove(), 2600);
 }
 
 const THEMES = {
@@ -74,13 +130,14 @@ const THEMES = {
   zombie: {
     ambientLabel: 'Арена зомби-процессов',
     ambientMode: 'zombie',
-    hudPill: 'Зомби',
+    hudPill: 'Фрагменты',
     shellClass: 'zombie-mode',
     sceneClass: 'zombie-scene',
-    rowLabel: 'Волна',
-    okHint: 'Команда сработала. Готовься к следующей волне.',
-    okMsg: 'Зомби-процесс уничтожен.',
-    badMsg: 'Фрагмент не совпал с эталоном. Проверь синтаксис bash и формулировку задания.',
+    rowLabel: 'Фрагмент',
+    okHint:
+      'Все строки скрипта верны. Построчный отчёт ниже — у каждой позиции ✓.',
+    okMsg: 'Антидот сработал: все команды верны, орда зомби-процессов обезврежена.',
+    badMsg: 'Хотя бы одна строка неверна. Толпа сомкнула кольцо — смотри ✗ в таблице.',
     finishMode: 'zombie-script',
   },
 };
@@ -102,11 +159,14 @@ export function initCommandBuilder(ctx, themeKey) {
     shuffle,
     createAmbientLayer,
     createHud,
+    setTopicTimeoutHandler,
+    lockForVerdict,
+    submitMissionEnd,
   } = ctx;
 
   const tasks = topic.tasks;
   const results = [];
-  const levelOutcomes = [];
+  const enteredScriptLines = [];
   let taskIndex = 0;
 
   app.innerHTML = '';
@@ -274,110 +334,345 @@ export function initCommandBuilder(ctx, themeKey) {
       .join('\n');
   }
 
-  function renderZombieBashTask() {
-    resetZombieStage();
-    const task = tasks[taskIndex];
-    let checked = false;
-    stepEl.textContent = `${taskIndex + 1}/${tasks.length}`;
-    const isFinalLevel = taskIndex === tasks.length - 1;
+  /** Нормализация одной строки bash для сравнения (пробелы, $(( … )), вокруг `=`). */
+  function normalizeBashLine(line) {
+    let s = (line || '').trim();
+    if (!s) return '';
+    s = s.replace(/\s+/g, ' ');
+    s = s.replace(/\s*;\s*$/, ';');
+    if (s.endsWith(';')) s = s.slice(0, -1).trim();
+    s = s.replace(/\s*=\s*/g, '=');
+    s = s.replace(/\$\(\(\s*([^)]+?)\s*\)\)/g, (_, inner) => `$((${inner.replace(/\s+/g, '')}))`);
+    s = s.replace(/\s*;\s*/g, '; ');
+    s = s.replace(/\s+in\s+/gi, ' in ');
+    s = s.replace(/\s+do\s+/gi, ' do ');
+    s = s.replace(/\s+done\s*$/i, ' done');
+    return s.trim();
+  }
+
+  function lineMatchesAccepted(typed, task) {
+    if (!task?.answer) return false;
+    const normTyped = normalizeBashLine(typed);
+    if (!normTyped) return false;
+    const options = [task.answer, ...(task.accepted || [])];
+    return options.some((variant) => normalizeBashLine(variant) === normTyped);
+  }
+
+  function evaluateZombieScript(userLines) {
+    const lineRows = [];
+    let isCorrect = userLines.length === tasks.length;
+
+    for (let i = 0; i < tasks.length; i += 1) {
+      const task = tasks[i];
+      const got = userLines[i];
+      const lineOk = got !== undefined && lineMatchesAccepted(got, task);
+      if (!lineOk) isCorrect = false;
+      lineRows.push({
+        got,
+        exp: task.answer,
+        lineOk,
+        scenario: task.scenario,
+      });
+    }
+
+    for (let i = tasks.length; i < userLines.length; i += 1) {
+      lineRows.push({ got: userLines[i], exp: '—', lineOk: false, scenario: '—' });
+      isCorrect = false;
+    }
+
+    if (userLines.length < tasks.length) isCorrect = false;
+
+    return { lineRows, isCorrect };
+  }
+
+  /** Непустые строки из поля ввода (минимум одна — это текущая строка фрагмента). */
+  function linesFromRawInput(raw) {
+    return (raw || '')
+      .replace(/\r\n/g, '\n')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+  }
+
+  function bindZombieDismissButton(pendingFinish) {
+    const btn = document.getElementById('zombie-dismiss-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      if (state.completed) return;
+      btn.disabled = true;
+      btn.textContent = 'Сохранение…';
+      submitMissionEnd(pendingFinish);
+    });
+  }
+
+  function renderZombieVerdictScreen({
+    isCorrect,
+    fullTyped,
+    lineRows,
+    userLines,
+    timeout = false,
+    pendingFinish,
+  }) {
+    lockForVerdict();
+    state.step = tasks.length;
+    if (timeout) state.score = 0;
+    else state.score = isCorrect ? topic.max_score : 0;
+    updateMeta();
+
+    const shell = app.querySelector('.builder-shell');
+    const stage = document.getElementById('zombie-stage');
+    const beam = document.getElementById('script-beam');
+
+    pulseFeedback(isCorrect ? 'ok' : 'bad', isCorrect ? { strong: true } : { intense: true });
+    burst(isCorrect ? 'ok' : 'bad', isCorrect ? { strong: true } : { intense: true });
+
+    if (stage) {
+      if (isCorrect) {
+        stage.classList.add('script-strike');
+        if (beam) beam.textContent = (fullTyped || '').replace(/\n/g, ' ').trim().slice(0, 260);
+        spawnZombieVictoryCinematic(stage, shell);
+        window.setTimeout(() => {
+          stage.classList.add('zombie-dead');
+          const svg = stage.querySelector('.zombie-svg');
+          if (svg) svg.classList.add('is-dead');
+        }, 520);
+        window.setTimeout(() => stage.classList.remove('script-strike'), 1100);
+      } else {
+        stage.classList.add('zombie-angry');
+        spawnZombieDefeatCinematic(stage, shell);
+        window.setTimeout(() => stage.classList.remove('zombie-angry'), 1200);
+      }
+    }
+
+    const bannerKicker = timeout
+      ? 'Время вышло'
+      : isCorrect
+        ? 'Антидот активирован'
+        : 'Скрипт отвергнут';
+    const bannerTitle = timeout
+      ? 'Орда настигла тебя'
+      : isCorrect
+        ? 'Орда уничтожена!'
+        : 'Тебя сожрали';
+    const wrongCount = lineRows ? lineRows.filter((r) => !r.lineOk).length : tasks.length;
+    const bannerSub = timeout
+      ? 'Таймер обнулился до финальной проверки. Результат: 0 баллов.'
+      : isCorrect
+        ? `+${topic.max_score} баллов. Все ${tasks.length} строк верны.`
+        : wrongCount === 1
+          ? 'Одна строка не совпала с эталоном — орда выжила.'
+          : `Неверных строк: ${wrongCount} из ${tasks.length}.`;
+
+    setMessage(timeout ? 'Время вышло. Изучи отчёт и нажми «Завершить».' : isCorrect ? T.okMsg : T.badMsg, isCorrect && !timeout ? 'success' : 'error');
+
+    const tableBlock =
+      lineRows && lineRows.length
+        ? `
+          <table class="zombie-diff-table">
+            <thead><tr><th>#</th><th>Что ты ввёл</th><th>Эталон</th><th></th></tr></thead>
+            <tbody>${lineRows
+              .map((row, idx) => {
+                const cellOk = row.lineOk ? '✓' : '✗';
+                const cls = row.lineOk ? 'diff-ok' : 'diff-bad';
+                return `<tr class="${cls}"><td>${idx + 1}</td><td><code>${escapeHtml(row.got ?? '—')}</code></td><td><code>${escapeHtml(row.exp ?? '—')}</code></td><td>${cellOk}</td></tr>`;
+              })
+              .join('')}</tbody>
+          </table>`
+        : '<p class="muted">Скрипт не был собран до конца.</p>';
+
+    const trophySrc = window.BRAND_IMAGES?.trophy || '';
+    const trophyHtml =
+      isCorrect && trophySrc
+        ? `<img src="${escapeHtml(trophySrc)}" alt="" class="zombie-finale-trophy" width="112" height="112">`
+        : '';
 
     mission.innerHTML = `
-        <div class="question-header">
-          <div class="question-kicker">${T.rowLabel} ${taskIndex + 1}</div>
-          <div class="question-tip">1–2 строки кода bash; Enter — новая строка, проверка — кнопка или Ctrl+Enter</div>
-        </div>
-        <h3>${escapeHtml(task.scenario)}</h3>
-        <label class="bash-input-label" for="bash-input">Код bash</label>
-        <textarea class="bash-input" id="bash-input" autocomplete="off" spellcheck="false" rows="4"></textarea>
-        <div class="builder-actions">
-          <button type="button" class="secondary-btn small-btn" id="clear-command">Очистить</button>
-          <button type="button" class="primary-btn small-btn" id="check-command">Проверить</button>
-        </div>
-        <div class="builder-status muted" id="builder-status">Введи код и нажми «Проверить» или Ctrl+Enter (⌘+Enter на Mac).</div>
-      `;
-
-    const inputEl = document.getElementById('bash-input');
-    const statusEl = document.getElementById('builder-status');
-    const clearButton = document.getElementById('clear-command');
-    const checkButton = document.getElementById('check-command');
-
-    clearButton.addEventListener('click', () => {
-      if (checked || state.completed) return;
-      inputEl.value = '';
-      inputEl.focus();
-    });
-
-    function processAnswer() {
-      if (checked || state.completed) return;
-      checked = true;
-      const typed = inputEl.value;
-      const normalizedTyped = normalizeScript(typed);
-      const accepted = [task.answer, ...(task.accepted || [])];
-      let isCorrect = accepted.some((variant) => normalizeScript(variant) === normalizedTyped);
-      const previousAllCorrect = levelOutcomes.every(Boolean);
-      const blockedByPrevious = isFinalLevel && !previousAllCorrect;
-      if (blockedByPrevious) {
-        isCorrect = false;
-      }
-
-      state.step = taskIndex + 1;
-      if (isCorrect) state.score += 1;
-      addCombo(isCorrect);
-      updateMeta();
-      pulseFeedback(isCorrect ? 'ok' : 'bad', isCorrect ? { strong: true } : { intense: true });
-      burst(isCorrect ? 'ok' : 'bad', isCorrect ? { strong: true } : { intense: true });
-
-      const stage = document.getElementById('zombie-stage');
-      const beam = document.getElementById('script-beam');
-      if (stage) {
-        if (isCorrect) {
-          stage.classList.add('script-strike');
-          if (beam) beam.textContent = normalizedTyped.replace(/\n/g, ' ').trim();
-          spawnZombieEpicExplosion(stage);
-          stage.classList.add('zombie-epic-detonate');
-          window.setTimeout(() => {
-            stage.classList.remove('zombie-epic-detonate');
-            stage.classList.add('zombie-dead');
-            const svg = stage.querySelector('.zombie-svg');
-            if (svg) svg.classList.add('is-dead');
-          }, 380);
-          window.setTimeout(() => stage.classList.remove('script-strike'), 920);
-        } else {
-          stage.classList.add('zombie-angry');
-          window.setTimeout(() => stage.classList.remove('zombie-angry'), 550);
+      <div class="zombie-finale-banner ${isCorrect ? 'zombie-finale-win' : 'zombie-finale-loss'}" role="status">
+        ${trophyHtml}
+        <p class="zombie-finale-kicker">${escapeHtml(bannerKicker)}</p>
+        <h2 class="zombie-finale-title">${escapeHtml(bannerTitle)}</h2>
+        <p class="zombie-finale-sub">${escapeHtml(bannerSub)}</p>
+      </div>
+      <div class="question-header">
+        <div class="question-kicker">Итог проверки</div>
+        <div class="question-tip">${timeout ? 'Миссия остановлена по таймеру.' : isCorrect ? 'Все команды построчно верны — победа.' : 'Не все строки совпали с эталоном — поражение.'}</div>
+      </div>
+      <div class="zombie-script-summary ${isCorrect ? 'success' : 'error'}" role="region" aria-label="Построчный отчёт">
+        <h4 class="zombie-script-summary-title">Построчно: что ввёл / эталон</h4>
+        ${tableBlock}
+        ${
+          userLines && userLines.length
+            ? `<details class="zombie-script-aggregate">
+            <summary>Сводка заданий (формулировки шагов)</summary>
+            <ol class="zombie-scenarios-list">${tasks
+              .map((t, i) => `<li>${escapeHtml(t.scenario)} — <code>${escapeHtml(userLines[i] ?? '')}</code></li>`)
+              .join('')}</ol>
+          </details>`
+            : ''
         }
-      }
+      </div>
+      <div class="builder-status ${isCorrect ? 'success' : 'error'}" id="builder-status">
+        ${isCorrect ? escapeHtml(T.okHint) : timeout ? 'Время истекло. Нажми «Завершить», чтобы зафиксировать результат и выйти.' : 'Сборка скрипта ошибочна. Строки с ✗ — неверные. Нажми «Завершить», чтобы выйти.'}
+      </div>
+      <div class="zombie-finale-actions">
+        <button type="button" class="primary-btn zombie-dismiss-btn" id="zombie-dismiss-btn">Завершить</button>
+        <p class="zombie-finale-hint muted">Результат сохранится на сервере только после нажатия кнопки.</p>
+      </div>
+    `;
 
-      const failReason = blockedByPrevious
-        ? 'Финальный зомби защищен: на одном из предыдущих уровней был неверный bash-код.'
-        : 'Ответ не совпадает с допустимым фрагментом bash. Сверься с формулировкой уровня.';
+    bindZombieDismissButton(pendingFinish);
+  }
 
-      statusEl.textContent = isCorrect ? T.okHint : failReason;
-      statusEl.classList.remove('muted', 'success', 'error');
-      statusEl.classList.add(isCorrect ? 'success' : 'error');
-      setMessage(isCorrect ? T.okMsg : blockedByPrevious ? 'Финальный уровень не пройден: есть ошибки на прошлых уровнях.' : T.badMsg, isCorrect ? 'success' : 'error');
+  function renderZombieBashTask() {
+    resetZombieStage();
 
-      levelOutcomes.push(isCorrect);
-      clearedEl.textContent = String(levelOutcomes.filter(Boolean).length);
+    if (setTopicTimeoutHandler) {
+      setTopicTimeoutHandler(() => {
+        if (state.completed || state.awaitingDismiss) return;
+        const userLines = enteredScriptLines.slice();
+        const partial = normalizeScript(userLines.join('\n'));
+        const { lineRows } = evaluateZombieScript(userLines);
+        const pendingFinish = {
+          mode: T.finishMode,
+          results: [
+            {
+              scenario: 'Таймаут миссии',
+              answer: partial,
+              correctAnswer: normalizeScript(topic.full_script || ''),
+              ok: false,
+            },
+          ],
+          timeout: true,
+          scriptOk: false,
+        };
+        renderZombieVerdictScreen({
+          isCorrect: false,
+          fullTyped: partial,
+          lineRows,
+          userLines,
+          timeout: true,
+          pendingFinish,
+        });
+      });
+    }
+
+    function applyFullScriptResult() {
+      const userLines = enteredScriptLines.slice();
+      const fullTyped = normalizeScript(userLines.join('\n'));
+      const { lineRows, isCorrect } = evaluateZombieScript(userLines);
+
+      addCombo(isCorrect);
+
+      lineRows.forEach((row, i) => {
+        results.push({
+          scenario: tasks[i]?.scenario ?? `Строка ${i + 1}`,
+          answer: row.got ?? '',
+          correctAnswer: row.exp ?? '',
+          ok: row.lineOk,
+        });
+      });
+
       results.push({
-        scenario: task.scenario,
-        answer: normalizedTyped,
-        correctAnswer: task.answer,
+        scenario: 'Итог: все строки скрипта',
+        answer: fullTyped,
+        correctAnswer: tasks.map((t) => t.answer).join('\n'),
         ok: isCorrect,
       });
 
-      window.setTimeout(() => {
-        taskIndex += 1;
-        if (taskIndex >= tasks.length) finish({ mode: T.finishMode, results, allPreviousBeforeFinalCorrect: previousAllCorrect });
-        else renderZombieBashTask();
-      }, 850);
+      renderZombieVerdictScreen({
+        isCorrect,
+        fullTyped,
+        lineRows,
+        userLines,
+        timeout: false,
+        pendingFinish: {
+          mode: T.finishMode,
+          results: results.slice(),
+          scriptOk: isCorrect,
+          linesCorrect: lineRows.filter((r) => r.lineOk).length,
+          linesTotal: tasks.length,
+        },
+      });
     }
 
-    checkButton.addEventListener('click', processAnswer);
-    inputEl.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) processAnswer();
-    });
-    inputEl.focus();
+    function renderZombieLineStep() {
+      resetZombieStage();
+      const task = tasks[taskIndex];
+      const isLast = taskIndex >= tasks.length - 1;
+
+      clearedEl.textContent = `${enteredScriptLines.length}/${tasks.length}`;
+      state.step = taskIndex + 1;
+      updateMeta();
+
+      mission.innerHTML = `
+        <div class="question-header">
+          <div class="question-kicker">${T.rowLabel} ${taskIndex + 1} из ${tasks.length}</div>
+          <div class="question-tip">
+            Одна строка за шаг. Промежуточных вердиктов нет —
+            результат появится после последней строки. Ctrl+Enter / ⌘+Enter — то же, что кнопка.
+          </div>
+        </div>
+        <h3>${escapeHtml(task.scenario)}</h3>
+        <label class="bash-input-label" for="bash-input">Текущая строка скрипта</label>
+        <textarea class="bash-input" id="bash-input" autocomplete="off" spellcheck="false" rows="3"></textarea>
+        <div class="builder-actions">
+          <button type="button" class="secondary-btn small-btn" id="clear-command">Очистить поле</button>
+          <button type="button" class="primary-btn small-btn" id="check-command">${isLast ? 'Проверить весь скрипт' : 'Добавить строку'}</button>
+        </div>
+        <div class="builder-status muted" id="builder-status">
+          ${isLast ? 'После нажатия будет сверка всего скрипта с эталоном.' : 'Строка попадёт в общий скрипт; верно или нет — узнаешь в конце.'}
+        </div>
+      `;
+
+      const inputEl = document.getElementById('bash-input');
+      const statusEl = document.getElementById('builder-status');
+      const clearButton = document.getElementById('clear-command');
+      const checkButton = document.getElementById('check-command');
+
+      clearButton.addEventListener('click', () => {
+        if (state.completed) return;
+        inputEl.value = '';
+        inputEl.focus();
+      });
+
+      function processLine() {
+        if (state.completed || state.awaitingDismiss) return;
+        const parts = linesFromRawInput(inputEl.value);
+        if (parts.length === 0) {
+          statusEl.textContent = 'Введи непустую строку (один фрагмент за шаг).';
+          statusEl.classList.remove('muted', 'success', 'error');
+          statusEl.classList.add('error');
+          return;
+        }
+        if (parts.length > 1) {
+          statusEl.textContent = 'За один шаг — ровно одна строка кода. Убери лишние переносы или раздели по шагам.';
+          statusEl.classList.remove('muted', 'success', 'error');
+          statusEl.classList.add('error');
+          return;
+        }
+        const line = parts[0];
+        enteredScriptLines.push(line);
+
+        if (!isLast) {
+          statusEl.textContent = 'Строка записана в скрипт. Дальше — следующий фрагмент.';
+          statusEl.classList.remove('muted', 'success', 'error');
+          statusEl.classList.add('muted');
+          taskIndex += 1;
+          window.setTimeout(() => renderZombieLineStep(), 320);
+          return;
+        }
+
+        applyFullScriptResult();
+      }
+
+      checkButton.addEventListener('click', processLine);
+      inputEl.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) processLine();
+      });
+      inputEl.focus();
+    }
+
+    renderZombieLineStep();
   }
 
   if (themeKey === 'zombie') renderZombieBashTask();

@@ -2,10 +2,10 @@ from flask import flash, redirect, render_template, request, url_for
 
 from olympiad.extensions import db
 from olympiad.models import TopicResult, User
+from olympiad.services.leaderboard import build_student_leaderboard, build_team_leaderboard
 from olympiad.services.progress import get_topic_progress
 from olympiad.utils.auth import admin_required, normalize_login
 from werkzeug.security import generate_password_hash
-from topics import list_topics
 
 
 def register(app):
@@ -13,21 +13,18 @@ def register(app):
     @admin_required
     def admin_panel():
         users = User.query.filter(User.role != "admin").order_by(User.created_at.desc()).all()
-        results = (
-            TopicResult.query.join(User)
-            .filter(User.role != "admin")
-            .order_by(TopicResult.created_at.desc())
-            .limit(200)
-            .all()
-        )
+        students = [user for user in users if user.role == "student"]
+        testers = [user for user in users if user.role == "tester"]
 
-        topic_titles = {topic["id"]: topic["short_title"] for topic in list_topics()}
-        scoreboard = []
-        for user in users:
+        leaderboard = build_student_leaderboard(students)
+        team_leaderboard = build_team_leaderboard(leaderboard)
+
+        tester_rows = []
+        for user in testers:
             user_progress = get_topic_progress(user.id, user_role=user.role)
             total_best = sum(item["best_score"] or 0 for item in user_progress.values())
             total_max = sum(item["max_score"] for item in user_progress.values())
-            scoreboard.append(
+            tester_rows.append(
                 {
                     "user": user,
                     "progress": user_progress,
@@ -37,17 +34,12 @@ def register(app):
                 }
             )
 
-        total_students = len([u for u in users if u.role == "student"])
-        total_testers = len([u for u in users if u.role == "tester"])
-        total_attempts = TopicResult.query.join(User).filter(User.role != "admin").count()
+        total_students = len(students)
+        total_testers = len(testers)
+        total_modules_completed = sum(row["completed_count"] for row in leaderboard)
         avg_percent = 0
-        student_rows = [row for row in scoreboard if row["user"].role == "student"]
-        if student_rows:
-            avg_percent = round(
-                sum((row["total_best"] / row["total_max"] * 100) for row in student_rows if row["total_max"])
-                / len(student_rows),
-                1,
-            )
+        if leaderboard:
+            avg_percent = round(sum(row["percent"] for row in leaderboard) / len(leaderboard), 1)
 
         from olympiad.services.settings import get_or_create_settings
 
@@ -56,12 +48,12 @@ def register(app):
         return render_template(
             "admin.html",
             users=users,
-            results=results,
-            topic_titles=topic_titles,
-            scoreboard=scoreboard,
+            leaderboard=leaderboard,
+            team_leaderboard=team_leaderboard,
+            tester_rows=tester_rows,
             total_students=total_students,
             total_testers=total_testers,
-            total_attempts=total_attempts,
+            total_modules_completed=total_modules_completed,
             avg_percent=avg_percent,
             music_enabled=settings.music_enabled,
         )

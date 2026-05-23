@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from flask import Flask
+from flask import Flask, request, session
 from werkzeug.security import generate_password_hash
 
 from olympiad.config import PROJECT_ROOT, get_config
@@ -26,10 +26,39 @@ def create_app():
     def inject_globals():
         from topics import list_topics
 
+        current_topic_id = None
+        nav_active = None
+        if request.endpoint == "topic_page" and request.view_args:
+            current_topic_id = request.view_args.get("topic_id")
+            nav_active = "topic"
+        elif request.endpoint == "dashboard":
+            nav_active = "dashboard"
+        elif request.endpoint == "admin_panel":
+            nav_active = "admin"
+
+        user_profile = None
+        if session.get("user_id"):
+            user = User.query.get(session["user_id"])
+            if user:
+                role_labels = {
+                    "admin": "преподаватель",
+                    "tester": "тестировщик",
+                    "student": "студент",
+                }
+                user_profile = {
+                    "full_name": user.full_name,
+                    "team": user.group_number,
+                    "role": user.role,
+                    "role_label": role_labels.get(user.role, user.role),
+                }
+
         return {
             "all_topics": list_topics(),
             "now_year": datetime.utcnow().year,
             "music_enabled": is_music_enabled(),
+            "current_topic_id": current_topic_id,
+            "nav_active": nav_active,
+            "user_profile": user_profile,
         }
 
     with app.app_context():

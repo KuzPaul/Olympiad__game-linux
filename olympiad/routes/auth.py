@@ -15,9 +15,7 @@ def register(app):
             user = User.query.filter_by(login=login_value).first()
             if user and check_password_hash(user.password_hash, password):
                 session["user_id"] = user.id
-                session["user_name"] = user.full_name
                 session["role"] = user.role
-                flash("Вход выполнен.", "success")
                 return redirect(url_for("admin_panel" if user.role == "admin" else "dashboard"))
             flash("Неверный логин или пароль.", "error")
         return render_template("login.html")

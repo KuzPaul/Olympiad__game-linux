@@ -13,6 +13,7 @@ export function initQuiz(ctx) {
     escapeHtml,
     createAmbientLayer,
     createHud,
+    trackMissionProgress,
   } = ctx;
 
   const questions = topic.questions;
@@ -83,6 +84,7 @@ export function initQuiz(ctx) {
           correct: question.options[question.answer],
           ok: isCorrect,
         });
+        trackMissionProgress({ mode: 'quiz', results: results.slice(), step: state.step });
 
         panel.querySelectorAll('.arcade-answer').forEach((btn) => {
           btn.disabled = true;

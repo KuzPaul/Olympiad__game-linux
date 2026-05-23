@@ -14,6 +14,7 @@ export function initMatch(ctx) {
     shuffle,
     createAmbientLayer,
     createHud,
+    trackMissionProgress,
   } = ctx;
 
   const pairs = shuffle(topic.pairs.map((pair, id) => ({ ...pair, id })));
@@ -84,6 +85,7 @@ export function initMatch(ctx) {
         burst(isCorrect ? 'ok' : 'bad', isCorrect ? { strong: true } : { intense: true });
 
         results.push({ left: current.left, picked, right: current.right, ok: isCorrect });
+        trackMissionProgress({ mode: 'match', results: results.slice(), step: state.step });
         mission.querySelectorAll('.vault-answer').forEach((btn) => {
           btn.disabled = true;
           if (btn.textContent.trim() === current.right) btn.classList.add('correct-outline');

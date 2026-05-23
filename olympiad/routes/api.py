@@ -30,7 +30,13 @@ def register(app):
         if not is_tester and existing_result:
             return jsonify({"ok": False, "message": "Тема уже завершена. Повторное прохождение недоступно."}), 403
 
-        payload = request.get_json(silent=True) or {}
+        payload = request.get_json(silent=True)
+        if not payload and request.data:
+            try:
+                payload = json.loads(request.data)
+            except (json.JSONDecodeError, TypeError):
+                payload = None
+        payload = payload or {}
         score = payload.get("score")
         details = payload.get("details", {})
 

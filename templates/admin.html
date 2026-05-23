@@ -5,8 +5,47 @@
 <section class="stats-row admin-stats">
     <div class="stat-box"><div class="stat-value">{{ total_students }}</div><div class="stat-label">студентов</div></div>
     <div class="stat-box"><div class="stat-value">{{ total_testers }}</div><div class="stat-label">тестировщиков</div></div>
-    <div class="stat-box"><div class="stat-value">{{ total_attempts }}</div><div class="stat-label">всего попыток</div></div>
-    <div class="stat-box"><div class="stat-value">{{ avg_percent }}%</div><div class="stat-label">средний % (только студенты)</div></div>
+    <div class="stat-box"><div class="stat-value">{{ total_modules_completed }}</div><div class="stat-label">модулей сдано</div></div>
+    <div class="stat-box"><div class="stat-value">{{ avg_percent }}%</div><div class="stat-label">средний % по сумме</div></div>
+</section>
+
+<section class="glass-card team-scoreboard-card bottom-gap">
+    <div class="section-head">
+        <h3>Рейтинг команд / факультетов</h3>
+        <p class="muted section-lead">Сумма баллов всех участников с одинаковым значением «Команда/Факультет».</p>
+    </div>
+    <div class="table-wrap">
+        <table class="leaderboard-table team-leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Место</th>
+                    <th>Команда/Факультет</th>
+                    <th>Участников</th>
+                    <th>Модулей</th>
+                    <th>Сумма</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in team_leaderboard %}
+                    <tr class="leaderboard-row{% if row.is_podium %} leaderboard-row--place-{{ row.rank }}{% endif %}">
+                        <td class="leaderboard-place">
+                            <span class="place-badge place-badge--{{ row.rank if row.rank <= 3 else 'default' }}">{{ row.rank }}</span>
+                        </td>
+                        <td class="leaderboard-name">{{ row.name }}</td>
+                        <td>{{ row.member_count }}</td>
+                        <td><strong>{{ row.completed_modules }}</strong></td>
+                        <td><strong>{{ row.total_best }}/{{ row.total_max }}</strong></td>
+                        <td>{{ row.percent }}%</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6">Нет данных по командам.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 
 <section class="glass-card bottom-gap" style="margin-bottom:18px; padding: 24px; border-radius: 15px">
@@ -23,49 +62,66 @@
     </form>
 </section>
 
-<section class="admin-layout">
-    <div class="glass-card" style="padding: 24px; border-radius: 15px">
-        <div class="section-head"><h3>Сводная таблица</h3></div>
-        <div class="table-wrap wide-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Участник</th>
-                        <th>Роль</th>
-                        <th>Группа</th>
-                        {% for topic in all_topics %}
-                            <th>Т{{ topic.id }}</th>
-                        {% endfor %}
-                        <th>Сумма</th>
-                        <th>Попытки</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in scoreboard %}
-                        <tr>
-                            <td>{{ row.user.full_name }}</td>
-                            <td>{% if row.user.role == 'tester' %}<span class="role-badge tester">тест</span>{% else %}<span class="role-badge">студент</span>{% endif %}</td>
-                            <td>{{ row.user.group_number }}</td>
-                            {% for topic in all_topics %}
-                                {% set entry = row.progress[topic.id] %}
-                                <td>{{ entry.best_score if entry.best_score is not none else '—' }}/{{ entry.max_score }}</td>
-                            {% endfor %}
-                            <td><strong>{{ row.total_best }}/{{ row.total_max }}</strong></td>
-                            <td>{{ row.attempts }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<section class="glass-card bottom-gap" style="padding: 24px; border-radius: 15px">
+    <div class="section-head">
+        <h3>Рейтинг участников</h3>
+        <p class="muted section-lead">Один студент — одна строка: место, команда/факультет, сданные модули и баллы по каждой теме.</p>
     </div>
+    <div class="table-wrap wide-table">
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th>Место</th>
+                    <th>Участник</th>
+                    <th>Команда/Факультет</th>
+                    <th>Модулей</th>
+                    {% for topic in all_topics %}
+                        <th title="{{ topic.title }}">Т{{ topic.id }}</th>
+                    {% endfor %}
+                    <th>Сумма</th>
+                    <th>%</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in leaderboard %}
+                    <tr class="leaderboard-row{% if row.is_podium %} leaderboard-row--place-{{ row.rank }}{% endif %}">
+                        <td class="leaderboard-place">
+                            <span class="place-badge place-badge--{{ row.rank if row.rank <= 3 else 'default' }}">{{ row.rank }}</span>
+                        </td>
+                        <td class="leaderboard-name">{{ row.user.full_name }}</td>
+                        <td>{{ row.user.group_number }}</td>
+                        <td><strong>{{ row.completed_count }}/{{ row.total_topics }}</strong></td>
+                        {% for topic in all_topics %}
+                            {% set entry = row.progress[topic.id] %}
+                            <td class="leaderboard-topic-cell{% if entry.completed %} is-done{% endif %}">
+                                {% if entry.completed %}
+                                    {{ entry.best_score }}/{{ entry.max_score }}
+                                {% else %}
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
+                        {% endfor %}
+                        <td><strong>{{ row.total_best }}/{{ row.total_max }}</strong></td>
+                        <td>{{ row.percent }}%</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="{{ 6 + all_topics|length }}">Студентов пока нет.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
 
+<section class="admin-layout bottom-gap">
     <div class="glass-card" style="padding: 24px; border-radius: 15px">
         <div class="section-head"><h3>Добавить студента или тестировщика</h3></div>
         <form method="post" action="{{ url_for('create_student') }}" class="form-grid two-cols">
             <label><span>Фамилия</span><input type="text" name="surname" required></label>
             <label><span>Имя</span><input type="text" name="name" required></label>
             <label><span>Отчество</span><input type="text" name="patronymic"></label>
-            <label><span>Группа</span><input type="text" name="group_number" required></label>
+            <label><span>Команда/Факультет</span><input type="text" name="group_number" placeholder="Общее название команды или факультета" required></label>
             <label><span>Логин</span><input type="text" name="login" required></label>
             <label><span>Пароль</span><input type="text" name="password" required></label>
             <label class="full-width"><span>Роль</span>
@@ -77,18 +133,16 @@
             <div class="full-width"><button type="submit" class="primary-btn">Добавить</button></div>
         </form>
     </div>
-</section>
 
-<section class="admin-layout bottom-gap">
     <div class="glass-card" style="padding: 24px; border-radius: 15px">
-        <div class="section-head"><h3>Студенты</h3></div>
+        <div class="section-head"><h3>Управление аккаунтами</h3></div>
         <div class="stacked-cards">
             {% for user in users %}
                 <div class="mini-card">
                     <div>
                         <strong>{{ user.full_name }}</strong>
-                        {% if user.role == 'tester' %}<span class="role-badge tester">тестировщик</span>{% endif %}
-                        <div class="muted">Группа: {{ user.group_number }} · Логин: {{ user.login }}</div>
+                        {% if user.role == 'tester' %}<span class="role-badge tester">тестировщик</span>{% else %}<span class="role-badge">студент</span>{% endif %}
+                        <div class="muted">Команда/Факультет: {{ user.group_number }} · Логин: {{ user.login }}</div>
                     </div>
                     <div class="mini-card-actions">
                         <form method="post" action="{{ url_for('reset_password', user_id=user.id) }}" class="inline-form">
@@ -101,43 +155,47 @@
                     </div>
                 </div>
             {% else %}
-                <p class="muted">Студентов пока нет.</p>
+                <p class="muted">Участников пока нет.</p>
             {% endfor %}
         </div>
     </div>
+</section>
 
-    <div class="glass-card" style="padding: 24px; border-radius: 15px">
-        <div class="section-head"><h3>Последние результаты</h3></div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Когда</th>
-                        <th>Участник</th>
-                        <th>Роль</th>
-                        <th>Тема</th>
-                        <th>Баллы</th>
-                        <th>Попытка</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in results %}
-                        <tr>
-                            <td>{{ item.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
-                            <td>{{ item.user.full_name }}</td>
-                            <td>{% if item.user.role == 'tester' %}тест{% else %}студент{% endif %}</td>
-                            <td>{{ topic_titles[item.topic_id] }}</td>
-                            <td>{{ item.score }}/{{ item.max_score }}</td>
-                            <td>{{ item.attempt }}</td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="6">Пока нет результатов.</td>
-                        </tr>
+{% if tester_rows %}
+<section class="glass-card bottom-gap" style="padding: 24px; border-radius: 15px">
+    <div class="section-head">
+        <h3>Тестировщики</h3>
+        <p class="muted section-lead">Не участвуют в рейтинге; сводка по последним проходам.</p>
+    </div>
+    <div class="table-wrap wide-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>Участник</th>
+                    <th>Команда/Факультет</th>
+                    {% for topic in all_topics %}
+                        <th>Т{{ topic.id }}</th>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    <th>Сумма</th>
+                    <th>Попыток</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in tester_rows %}
+                    <tr>
+                        <td>{{ row.user.full_name }}</td>
+                        <td>{{ row.user.group_number }}</td>
+                        {% for topic in all_topics %}
+                            {% set entry = row.progress[topic.id] %}
+                            <td>{{ entry.best_score if entry.best_score is not none else '—' }}/{{ entry.max_score }}</td>
+                        {% endfor %}
+                        <td><strong>{{ row.total_best }}/{{ row.total_max }}</strong></td>
+                        <td>{{ row.attempts }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </section>
+{% endif %}
 {% endblock %}

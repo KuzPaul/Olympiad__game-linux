@@ -13,6 +13,7 @@ export function initClassification(ctx) {
     shuffle,
     createAmbientLayer,
     createHud,
+    trackMissionProgress,
   } = ctx;
 
   const items = shuffle(topic.items);
@@ -112,6 +113,7 @@ export function initClassification(ctx) {
     resolvedRow.prepend(card);
 
     results.push({ label: item.label, chosen, correct: item.category, ok: isCorrect });
+    trackMissionProgress({ mode: 'classification', results: results.slice(), step: state.step });
     setMessage(
       isCorrect
         ? `Модуль <strong>${escapeHtml(item.label)}</strong> классифицирован верно — конвейер стабилен.`

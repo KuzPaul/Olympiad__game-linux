@@ -36,7 +36,7 @@
 <section class="topic-grid">
     {% for topic in all_topics %}
         {% set entry = progress[topic.id] %}
-        <article class="topic-card glass-card{% if entry.best_score is not none and entry.best_score >= entry.max_score and topic.type != 'classification' %} topic-card--perfect{% endif %}">
+        <article class="topic-card glass-card{% if user_role != 'tester' and not entry.completed %} topic-card--active-module{% endif %}{% if entry.best_score is not none and entry.best_score >= entry.max_score and topic.type != 'classification' %} topic-card--perfect{% endif %}">
             {% if entry.best_score is not none and entry.best_score >= entry.max_score and topic.type != 'classification' %}
             <img
                 src="{{ url_for('static', filename='img/brand/emblem-trophy.png') }}"
@@ -53,7 +53,7 @@
                 {% elif entry.completed %}
                     <span class="topic-status success-pill">Завершено</span>
                 {% else %}
-                    <span class="topic-status muted-pill">Ещё не начато</span>
+                    <span class="topic-status accent-pill">Доступно</span>
                 {% endif %}
             </div>
             <h3>{{ topic.short_title }}</h3>

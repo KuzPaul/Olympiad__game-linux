@@ -161,7 +161,8 @@ export function initCommandBuilder(ctx, themeKey) {
     createHud,
     setTopicTimeoutHandler,
     lockForVerdict,
-    submitMissionEnd,
+    commitMissionResult,
+    trackMissionProgress,
   } = ctx;
 
   const tasks = topic.tasks;
@@ -308,6 +309,7 @@ export function initCommandBuilder(ctx, themeKey) {
         correctAnswer: task.answer.join(' '),
         ok: isCorrect,
       });
+      trackMissionProgress({ mode: T.finishMode, results: results.slice(), step: state.step });
 
       statusEl.textContent = isCorrect ? T.okHint : 'Сборка отклонена. Попробуй другую последовательность токенов.';
       statusEl.classList.remove('muted', 'success', 'error');
@@ -394,14 +396,21 @@ export function initCommandBuilder(ctx, themeKey) {
       .filter((line) => line.length > 0);
   }
 
-  function bindZombieDismissButton(pendingFinish) {
+  function bindZombieDismissButton() {
     const btn = document.getElementById('zombie-dismiss-btn');
     if (!btn) return;
-    btn.addEventListener('click', () => {
-      if (state.completed) return;
-      btn.disabled = true;
-      btn.textContent = 'Сохранение…';
-      submitMissionEnd(pendingFinish);
+    btn.addEventListener('click', async () => {
+      if (!state.saved) {
+        btn.disabled = true;
+        btn.textContent = 'Сохранение…';
+        const ok = await commitMissionResult(state.details || {});
+        if (!ok) {
+          btn.disabled = false;
+          btn.textContent = 'Завершить';
+          return;
+        }
+      }
+      window.location.reload();
     });
   }
 
@@ -413,11 +422,11 @@ export function initCommandBuilder(ctx, themeKey) {
     timeout = false,
     pendingFinish,
   }) {
-    lockForVerdict();
     state.step = tasks.length;
     if (timeout) state.score = 0;
     else state.score = isCorrect ? topic.max_score : 0;
     updateMeta();
+    lockForVerdict();
 
     const shell = app.querySelector('.builder-shell');
     const stage = document.getElementById('zombie-stage');
@@ -463,7 +472,10 @@ export function initCommandBuilder(ctx, themeKey) {
           ? 'Одна строка не совпала с эталоном — орда выжила.'
           : `Неверных строк: ${wrongCount} из ${tasks.length}.`;
 
-    setMessage(timeout ? 'Время вышло. Изучи отчёт и нажми «Завершить».' : isCorrect ? T.okMsg : T.badMsg, isCorrect && !timeout ? 'success' : 'error');
+    setMessage(
+      timeout ? 'Время вышло. Результат фиксируется…' : isCorrect ? T.okMsg : T.badMsg,
+      isCorrect && !timeout ? 'success' : 'error'
+    );
 
     const tableBlock =
       lineRows && lineRows.length
@@ -512,15 +524,35 @@ export function initCommandBuilder(ctx, themeKey) {
         }
       </div>
       <div class="builder-status ${isCorrect ? 'success' : 'error'}" id="builder-status">
-        ${isCorrect ? escapeHtml(T.okHint) : timeout ? 'Время истекло. Нажми «Завершить», чтобы зафиксировать результат и выйти.' : 'Сборка скрипта ошибочна. Строки с ✗ — неверные. Нажми «Завершить», чтобы выйти.'}
+        ${isCorrect ? escapeHtml(T.okHint) : timeout ? 'Время истекло. Итог сохраняется автоматически.' : 'Сборка скрипта ошибочна. Строки с ✗ — неверные.'}
       </div>
       <div class="zombie-finale-actions">
-        <button type="button" class="primary-btn zombie-dismiss-btn" id="zombie-dismiss-btn">Завершить</button>
-        <p class="zombie-finale-hint muted">Результат сохранится на сервере только после нажатия кнопки.</p>
+        <button type="button" class="primary-btn zombie-dismiss-btn" id="zombie-dismiss-btn" disabled>Завершить</button>
+        <p class="zombie-finale-hint muted" id="zombie-finale-hint">Фиксируем результат на сервере…</p>
       </div>
     `;
 
-    bindZombieDismissButton(pendingFinish);
+    commitMissionResult(pendingFinish).then((ok) => {
+      const btn = document.getElementById('zombie-dismiss-btn');
+      const hint = document.getElementById('zombie-finale-hint');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Завершить';
+      }
+      if (hint) {
+        hint.textContent = ok
+          ? 'Результат зафиксирован. Нажмите «Завершить», чтобы выйти.'
+          : 'Не удалось сохранить. Нажмите «Завершить» для повторной отправки.';
+      }
+      if (ok) {
+        setMessage(
+          `Результат зафиксирован: <strong>${state.score}/${topic.max_score}</strong>. Нажмите «Завершить», чтобы выйти.`,
+          isCorrect && !timeout ? 'success' : 'error'
+        );
+      }
+    });
+
+    bindZombieDismissButton();
   }
 
   function renderZombieBashTask() {
@@ -652,6 +684,11 @@ export function initCommandBuilder(ctx, themeKey) {
         }
         const line = parts[0];
         enteredScriptLines.push(line);
+        trackMissionProgress({
+          mode: T.finishMode,
+          lines: enteredScriptLines.slice(),
+          step: enteredScriptLines.length,
+        });
 
         if (!isLast) {
           statusEl.textContent = 'Строка записана в скрипт. Дальше — следующий фрагмент.';

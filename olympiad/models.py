@@ -10,7 +10,7 @@ class User(db.Model):
     surname = db.Column(db.String(80), nullable=False)
     name = db.Column(db.String(80), nullable=False)
     patronymic = db.Column(db.String(80), nullable=True)
-    group_number = db.Column(db.String(30), nullable=False)
+    group_number = db.Column(db.String(80), nullable=False)  # команда / факультет (общее поле)
     login = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), default="student", nullable=False)

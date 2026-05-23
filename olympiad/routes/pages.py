@@ -3,7 +3,7 @@ import json
 from flask import flash, redirect, render_template, request, session, url_for
 
 from olympiad.extensions import db
-from olympiad.models import TopicResult, User
+from olympiad.models import TopicResult
 from olympiad.services.progress import get_topic_progress
 from olympiad.services.settings import is_music_enabled
 from olympiad.utils.auth import login_required, normalize_login

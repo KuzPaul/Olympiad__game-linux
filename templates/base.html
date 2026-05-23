@@ -10,7 +10,9 @@
 </head>
 <body>
     <div class="site-emblem-bg" aria-hidden="true">
+        <div class="site-emblem-bg__glow"></div>
         <img src="{{ url_for('static', filename='img/brand/emblem-mission.png') }}" alt="" class="site-emblem-bg__img">
+        <div class="site-emblem-bg__veil"></div>
     </div>
     <div class="page-shell">
         <aside class="sidebar">
@@ -31,14 +33,14 @@
             <nav class="nav-links">
                 {% if session.get('user_id') %}
                     {% if session.get('role') == 'admin' %}
-                        <a href="{{ url_for('admin_panel') }}" class="nav-link">Панель преподавателя</a>
+                        <a href="{{ url_for('admin_panel') }}" class="nav-link{% if nav_active == 'admin' %} nav-link--active{% endif %}">Панель преподавателя</a>
                     {% else %}
-                        <a href="{{ url_for('dashboard') }}" class="nav-link">Личный кабинет</a>
+                        <a href="{{ url_for('dashboard') }}" class="nav-link{% if nav_active == 'dashboard' %} nav-link--active{% endif %}">Личный кабинет</a>
                         {% if session.get('role') == 'tester' %}
                             <span class="nav-link muted" style="pointer-events:none;opacity:0.85">Режим тестировщика</span>
                         {% endif %}
                         {% for nav_topic in all_topics %}
-                            <a href="{{ url_for('topic_page', topic_id=nav_topic.id) }}" class="nav-link">{{ nav_topic.short_title }}</a>
+                            <a href="{{ url_for('topic_page', topic_id=nav_topic.id) }}" class="nav-link{% if current_topic_id == nav_topic.id %} nav-link--active{% endif %}">{{ nav_topic.short_title }}</a>
                         {% endfor %}
                     {% endif %}
                     <a href="{{ url_for('logout') }}" class="nav-link danger-link">Выход</a>
@@ -64,23 +66,49 @@
 
         <div class="content-area">
             <header class="topbar">
-                <img
-                    src="{{ url_for('static', filename='img/brand/emblem-mission.png') }}"
-                    alt=""
-                    class="topbar-emblem"
-                    width="48"
-                    height="48"
-                >
-                <div>
-                    <div class="eyebrow">Олимпиадная платформа</div>
-                    <h1 class="page-title">{% block page_title %}Интерактивный комплекс по Linux{% endblock %}</h1>
+                <div class="topbar-left">
+                    <img
+                        src="{{ url_for('static', filename='img/brand/emblem-mission.png') }}"
+                        alt=""
+                        class="topbar-emblem"
+                        width="36"
+                        height="36"
+                    >
+                    <div class="topbar-main">
+                        <div class="eyebrow topbar-eyebrow">Олимпиадная платформа</div>
+                        <h1 class="page-title topbar-title">{% block page_title %}Интерактивный комплекс по Linux{% endblock %}</h1>
+                    </div>
                 </div>
                 <div class="user-chip-wrap">
-                    {% if session.get('user_id') %}
-                        <div class="user-chip">
-                            <span class="user-role">{% if session.get('role') == 'admin' %}Преподаватель{% elif session.get('role') == 'tester' %}Тестировщик{% else %}Студент{% endif %}</span>
-                            <strong>{{ session.get('user_name') }}</strong>
-                        </div>
+                    {% if user_profile %}
+                        <aside class="user-profile-card user-profile-card--role-{{ user_profile.role }}" aria-label="Профиль участника">
+                            <div class="user-profile-card__head">
+                                <img
+                                    src="{{ url_for('static', filename='img/brand/emblem-mission.png') }}"
+                                    alt=""
+                                    class="user-profile-card__emblem"
+                                    width="28"
+                                    height="28"
+                                >
+                                <span class="user-profile-card__title">Участник</span>
+                            </div>
+                            <dl class="user-profile-card__meta">
+                                <dt>Роль</dt>
+                                <dd>
+                                    <span class="user-profile-value">{{ user_profile.role_label }}</span>
+                                </dd>
+                                <dt>ФИО</dt>
+                                <dd>
+                                    <span class="user-profile-value">{{ user_profile.full_name }}</span>
+                                </dd>
+                                <dt>Команда/факультет</dt>
+                                <dd>
+                                    {% set team_label = '—' if user_profile.role == 'admin' else (user_profile.team or '—') %}
+                                    <span class="user-profile-value">{{ team_label }}</span>
+                                </dd>
+                            </dl>
+
+                        </aside>
                     {% endif %}
                 </div>
             </header>
@@ -105,5 +133,25 @@
         </div>
     </div>
     {% block scripts %}{% endblock %}
+    <script>
+        (function () {
+            function initProfileCardTips() {
+                const card = document.querySelector('.user-profile-card');
+                if (!card) return;
+                card.querySelectorAll('.user-profile-value').forEach((el) => {
+                    el.classList.remove('is-truncated');
+                    if (el.scrollWidth > el.clientWidth + 1) {
+                        el.classList.add('is-truncated');
+                    }
+                });
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initProfileCardTips);
+            } else {
+                initProfileCardTips();
+            }
+            window.addEventListener('resize', initProfileCardTips);
+        })();
+    </script>
 </body>
 </html>

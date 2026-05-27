@@ -42,7 +42,40 @@ python3 init_db.py
 python3 app.py
 ```
 
-В браузере откройте адрес из консоли Flask (часто `http://127.0.0.1:5000`).
+В браузере откройте адрес из консоли Flask: `http://127.0.0.1:5001` (порт 5001 — на macOS порт 5000 часто занят AirPlay).
+
+## Запуск в Docker
+
+Нужны только [Docker](https://docs.docker.com/get-docker/) и [Docker Compose](https://docs.docker.com/compose/install/) — Python и зависимости на хосте не требуются.
+
+```bash
+git clone <URL-репозитория>
+cd linux_olympiad_web_arcade
+
+cp .env.example .env
+# Задайте SECRET_KEY и ADMIN_INITIAL_PASSWORD в .env
+
+docker compose up --build
+```
+
+Приложение будет доступно по адресу **http://127.0.0.1:5001**.
+
+**База данных не удаляется** при остановке контейнера (`docker compose stop`, `docker compose down` или перезапуск). Файл SQLite лежит на вашем диске в папке `docker-data/olympiad_linux.db` — его можно бэкапить и копировать как обычный файл. Данные пропадут только если вы сами удалите каталог `docker-data/`.
+
+Остановка контейнера: `docker compose down`. Снова запустить: `docker compose up`.
+
+Только Docker (без Compose):
+
+```bash
+docker build -t olympiad-linux .
+mkdir -p docker-data
+docker run --rm -p 5001:5001 \
+  -e SECRET_KEY='your_secret_key' \
+  -e ADMIN_INITIAL_PASSWORD='admin123' \
+  -e DATABASE_PATH=/data/olympiad_linux.db \
+  -v "$(pwd)/docker-data:/data" \
+  olympiad-linux
+```
 
 ### Переменные окружения
 
@@ -80,20 +113,18 @@ templates/              # шаблоны Jinja2
 
 Регистрация на сайте доступна только для студентов; тестировщиков добавляет преподаватель.
 
-## Учебные модули (кратко)
+## Учебные модули
 
-1. Классификация ПО  
-2. Задачи и процессы  
-3. Учётные записи и права  
-4. Сетевые средства Linux  
+1. Классификация ПО
+2. Задачи и процессы
+3. Учётные записи и права
+4. Сетевые средства Linux
 5. Синтаксис Bash (несколько уровней, короткие ответы)
 
 ## Разработчики
 
-- Петрич Дмитрий Олегович  
-- Кузнецов Павел Борисович  
-- Воронин Анатолий  
+- Петрич Дмитрий Олегович
+- Кузнецов Павел Борисович
+- Воронин Анатолий
 
 ## Лицензия
-
-Укажите лицензию проекта (например, добавьте файл `LICENSE` и опишите условия здесь).

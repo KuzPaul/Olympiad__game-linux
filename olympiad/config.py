@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 
 # Корень проекта (рядом с папкой olympiad/)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-DB_PATH = os.path.join(PROJECT_ROOT, "olympiad_linux.db")
+DB_PATH = os.environ.get("DATABASE_PATH") or os.path.join(
+    PROJECT_ROOT, "olympiad_linux.db"
+)
 
 load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
 

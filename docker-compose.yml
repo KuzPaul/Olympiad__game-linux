@@ -1,0 +1,14 @@
+services:
+  olympiad:
+    build: .
+    ports:
+      - "${PORT:-5001}:5001"
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-admin123}
+      DATABASE_PATH: /data/olympiad_linux.db
+      PORT: "5001"
+    volumes:
+      # БД на диске хоста — сохраняется при stop/down и пересборке образа
+      - ./docker-data:/data
+    restart: unless-stopped

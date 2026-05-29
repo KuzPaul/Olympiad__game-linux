@@ -3,12 +3,14 @@ services:
     build: .
     ports:
       - "${PORT:-5001}:5001"
+    env_file:
+      - .env
     environment:
+      # Секреты из .env; путь к БД задаём только здесь (не в .env), чтобы не расходился с volume
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-admin123}
-      DATABASE_PATH: /data/olympiad_linux.db
+      DATABASE_PATH: /app/db/olympiad_linux.db
       PORT: "5001"
     volumes:
-      # БД на диске хоста — сохраняется при stop/down и пересборке образа
-      - ./docker-data:/data
+      - ./docker-data:/app/db
     restart: unless-stopped

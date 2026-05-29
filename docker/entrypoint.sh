@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-DB_FILE="${DATABASE_PATH:-/app/olympiad_linux.db}"
+DB_FILE="${DATABASE_PATH:-/app/db/olympiad_linux.db}"
 mkdir -p "$(dirname "$DB_FILE")"
 
 python init_db.py

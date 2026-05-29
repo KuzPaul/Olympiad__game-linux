@@ -5,15 +5,22 @@ from dotenv import load_dotenv
 # Корень проекта (рядом с папкой olympiad/)
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-load_dotenv(os.path.join(PROJECT_ROOT, ".env"))
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"), override=False)
 
 
 def get_database_path():
     """Путь к файлу SQLite. Пустой DATABASE_PATH в .env не подменяет значение по умолчанию."""
     explicit = os.environ.get("DATABASE_PATH", "").strip()
     if explicit:
-        return explicit
-    return os.path.join(PROJECT_ROOT, "olympiad_linux.db")
+        path = explicit
+    elif os.path.exists("/.dockerenv"):
+        path = "/app/db/olympiad_linux.db"
+    else:
+        path = os.path.join(PROJECT_ROOT, "olympiad_linux.db")
+    db_dir = os.path.dirname(path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+    return path
 
 
 def get_config():

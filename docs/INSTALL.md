@@ -45,7 +45,9 @@ docker compose up --build
 - При `docker compose stop` / `down` данные **сохраняются**
 - Полный сброс: удалите папку `docker-data/` и снова выполните `docker compose up`
 
-**Важно:** не задавайте `DATABASE_PATH` в `.env` — путь к БД задаётся в `docker-compose.yml`. Иначе приложение может писать не в смонтированную папку, и учётная запись преподавателя «пропадёт».
+**Важно:** не задавайте `DATABASE_PATH` в `.env` — путь задаётся в `docker-compose.yml` и в образе (`/app/db/olympiad_linux.db`). Иначе приложение может писать БД не в `docker-data/`, и админка «пропадёт».
+
+После merge или смены конфигурации: удалите `docker-data/`, пересоберите образ (`docker compose up --build`) и войдите с паролем из `.env`.
 
 ### Docker без Compose
 

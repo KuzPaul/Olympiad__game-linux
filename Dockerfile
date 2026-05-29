@@ -4,7 +4,8 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=5001
+    PORT=5001 \
+    DATABASE_PATH=/app/db/olympiad_linux.db
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

@@ -4,13 +4,6 @@
 {% block content %}
 <section class="topic-hero glass-card {{ topic.ui_theme }}">
     {% if completed_result and completed_result.score >= topic.max_score and topic.type != 'classification' %}
-    <img
-        src="{{ url_for('static', filename='img/brand/emblem-trophy.png') }}"
-        alt=""
-        class="topic-hero-trophy"
-        width="96"
-        height="96"
-    >
     {% endif %}
     <div>
         <div class="card-badge">{{ topic.hero }}</div>
